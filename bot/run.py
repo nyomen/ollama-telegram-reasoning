@@ -3,6 +3,13 @@ from aiogram.enums import ParseMode
 from aiogram.filters.command import Command, CommandStart
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import telegramify_markdown
+import telegramify_markdown.customize as customize
+customize.strict_markdown = False
+import re
+from textwrap import shorten
+
+
 from func.interactions import *
 import asyncio
 import traceback
@@ -428,15 +435,25 @@ async def handle_response(message, response_data, full_response):
     return False
 
 async def send_response(message, text):
+    #logging.info(f"[text]: '{text}'")
+    # Escape Markdown special characters to prevent formatting issues
+    text = telegramify_markdown.markdownify(reduce_text_for_telegram(text))
+
+    #logging.info(f"[markdownify]: '{text}'")
+
     # A negative message.chat.id is a group message
     if message.chat.id < 0 or message.chat.id == message.from_user.id:
-        await bot.send_message(chat_id=message.chat.id, text=text,parse_mode=ParseMode.MARKDOWN)
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text=text,
+            parse_mode="MarkdownV2"
+        )
     else:
         await bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=message.message_id,
             text=text,
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode="MarkdownV2"
         )
 
 async def ollama_request(message: types.Message, prompt: str = None):
@@ -496,6 +513,11 @@ async def ollama_request(message: types.Message, prompt: str = None):
             text=f"Something went wrong: {str(e)}",
             parse_mode=ParseMode.HTML,
         )
+
+def reduce_text_for_telegram(text):
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    return text
+
 
 async def main():
     init_db()
