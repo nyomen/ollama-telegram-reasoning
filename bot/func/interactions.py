@@ -129,6 +129,8 @@ async def generate(payload: dict, modelname: str, prompt: str):
                 buffer = b""
                 async for chunk in response.content.iter_any():
                     buffer += chunk
+                    #logging.info(f"[OllamaAPI]: RawBuffer: {buffer}")
+
                     while b"\n" in buffer:
                         line, buffer = buffer.split(b"\n", 1)
                         line = line.strip()
@@ -138,6 +140,16 @@ async def generate(payload: dict, modelname: str, prompt: str):
                             except json.JSONDecodeError as e:
                                 logging.error(f"JSON Decode Error: {e}")
                                 logging.error(f"Problematic line: {line}")
+
+                # At the end: handle leftover buffer content
+                buffer = buffer.strip()
+                if buffer:
+                    try:
+                        yield json.loads(buffer)
+                    except json.JSONDecodeError as e:
+                        logging.error(f"JSON Decode Error on final buffer: {e}")
+                        logging.error(f"Final buffer: {buffer}")
+
 
         except aiohttp.ClientError as e:
             logging.error(f"Client Error during request: {e}")
