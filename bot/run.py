@@ -3,6 +3,9 @@ from aiogram.enums import ParseMode
 from aiogram.filters.command import Command, CommandStart
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import telegramify_markdown
+import telegramify_markdown.customize as customize
+customize.strict_markdown = False
 import re
 from textwrap import shorten
 
@@ -462,7 +465,8 @@ async def send_response(message, text):
         for chunk in chunks:
             await bot.send_message(
                 chat_id=message.chat.id,
-                text=chunk
+                text=telegramify_markdown.markdownify(chunk),
+                parse_mode="MarkdownV2"
             )
     else:
         # Private bot response (edit first, then send extras)
@@ -471,12 +475,14 @@ async def send_response(message, text):
                 await bot.edit_message_text(
                     chat_id=message.chat.id,
                     message_id=message.message_id,
-                    text=chunk
+                    text=telegramify_markdown.markdownify(chunk),
+                    parse_mode="MarkdownV2"
                 )
             else:
                 await bot.send_message(
                     chat_id=message.chat.id,
-                    text=chunk
+                    text=telegramify_markdown.markdownify(chunk),
+                    parse_mode="MarkdownV2"
                 )
 
 async def ollama_request(message: types.Message, prompt: str = None):
