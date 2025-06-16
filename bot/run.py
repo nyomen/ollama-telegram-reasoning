@@ -437,24 +437,39 @@ async def handle_response(message, response_data, full_response):
 async def send_response(message, text):
     #logging.info(f"[text]: '{text}'")
     # Escape Markdown special characters to prevent formatting issues
-    text = telegramify_markdown.markdownify(reduce_text_for_telegram(text))
+    boxs = await telegramify_markdown.telegramify(
+        content=reduce_text_for_telegram(text),
+        latex_escape=True,
+        normalize_whitespace=True,
+        max_word_count=4090)
 
     #logging.info(f"[markdownify]: '{text}'")
 
     # A negative message.chat.id is a group message
+    # Group chat or direct message - use send_message
     if message.chat.id < 0 or message.chat.id == message.from_user.id:
-        await bot.send_message(
-            chat_id=message.chat.id,
-            text=text,
-            parse_mode="MarkdownV2"
-        )
+        for box in boxs:
+            await bot.send_message(
+                chat_id=message.chat.id,
+                text=box,
+                parse_mode="MarkdownV2"
+            )
     else:
-        await bot.edit_message_text(
-            chat_id=message.chat.id,
-            message_id=message.message_id,
-            text=text,
-            parse_mode="MarkdownV2"
-        )
+        # Private bot response (edit first, then send extras)
+        for i, box in enumerate(boxs):
+            if i == 0:
+                await bot.edit_message_text(
+                    chat_id=message.chat.id,
+                    message_id=message.message_id,
+                    text=box,
+                    parse_mode="MarkdownV2"
+                )
+            else:
+                await bot.send_message(
+                    chat_id=message.chat.id,
+                    text=box,
+                    parse_mode="MarkdownV2"
+                )
 
 async def ollama_request(message: types.Message, prompt: str = None):
     try:
