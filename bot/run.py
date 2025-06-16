@@ -452,10 +452,17 @@ def split_text(text, max_length=4095):
 
         return chunks
 
+def escape_markdown_v2(text: str) -> str:
+    escape_chars = r'_*\[\]()~`>#+-=|{}.!'
+    return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
+
 async def send_response(message, text):
     #logging.info(f"[text]: '{text}'")
     # Escape Markdown special characters to prevent formatting issues
-    text = telegramify_markdown.markdownify(reduce_text_for_telegram(text))
+    raw = reduce_text_for_telegram(text)
+    markdown = telegramify_markdown.markdownify(raw)
+    text = escape_markdown_v2(markdown)
+
     chunks = split_text(text)
 
     #logging.info(f"[markdownify]: '{text}'")
