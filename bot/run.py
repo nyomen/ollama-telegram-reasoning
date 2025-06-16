@@ -434,27 +434,56 @@ async def handle_response(message, response_data, full_response):
         return True
     return False
 
+def split_text(text, max_length=4095):
+        """Split text into safe Telegram-sized chunks, preserving line breaks."""
+        lines = text.split('\n')
+        chunks = []
+        current_chunk = ""
+
+        for line in lines:
+            if len(current_chunk) + len(line) + 1 < max_length:
+                current_chunk += line + '\n'
+            else:
+                chunks.append(current_chunk.strip())
+                current_chunk = line + '\n'
+
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+
+        return chunks
+
 async def send_response(message, text):
     #logging.info(f"[text]: '{text}'")
     # Escape Markdown special characters to prevent formatting issues
     text = telegramify_markdown.markdownify(reduce_text_for_telegram(text))
+    chunks = split_text(text)
 
     #logging.info(f"[markdownify]: '{text}'")
 
-    # A negative message.chat.id is a group message
+    # Group chat or direct message - use send_message
     if message.chat.id < 0 or message.chat.id == message.from_user.id:
-        await bot.send_message(
-            chat_id=message.chat.id,
-            text=text,
-            parse_mode="MarkdownV2"
-        )
+        for chunk in chunks:
+            await bot.send_message(
+                chat_id=message.chat.id,
+                text=chunk,
+                parse_mode="MarkdownV2"
+            )
     else:
-        await bot.edit_message_text(
-            chat_id=message.chat.id,
-            message_id=message.message_id,
-            text=text,
-            parse_mode="MarkdownV2"
-        )
+        # Private bot response (edit first, then send extras)
+        for i, chunk in enumerate(chunks):
+            if i == 0:
+                await bot.edit_message_text(
+                    chat_id=message.chat.id,
+                    message_id=message.message_id,
+                    text=chunk,
+                    parse_mode="MarkdownV2"
+                )
+            else:
+                await bot.send_message(
+                    chat_id=message.chat.id,
+                    text=chunk,
+                    parse_mode="MarkdownV2"
+                )
 
 async def ollama_request(message: types.Message, prompt: str = None):
     try:
