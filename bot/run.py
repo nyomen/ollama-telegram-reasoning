@@ -451,7 +451,7 @@ async def send_response(message, text):
         for box in boxs:
             await bot.send_message(
                 chat_id=message.chat.id,
-                text=box,
+                text=box.content,
                 parse_mode="MarkdownV2"
             )
     else:
@@ -461,13 +461,13 @@ async def send_response(message, text):
                 await bot.edit_message_text(
                     chat_id=message.chat.id,
                     message_id=message.message_id,
-                    text=box,
+                    text=box.content,
                     parse_mode="MarkdownV2"
                 )
             else:
                 await bot.send_message(
                     chat_id=message.chat.id,
-                    text=box,
+                    text=box.content,
                     parse_mode="MarkdownV2"
                 )
 
