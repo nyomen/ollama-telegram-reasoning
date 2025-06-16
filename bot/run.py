@@ -3,9 +3,6 @@ from aiogram.enums import ParseMode
 from aiogram.filters.command import Command, CommandStart
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import telegramify_markdown
-import telegramify_markdown.customize as customize
-customize.strict_markdown = False
 import re
 from textwrap import shorten
 
@@ -452,17 +449,10 @@ def split_text(text, max_length=4095):
 
         return chunks
 
-def escape_markdown_v2(text: str) -> str:
-    escape_chars = r'_*\[\]()~`>#+-=|{}.!'
-    return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
-
 async def send_response(message, text):
     #logging.info(f"[text]: '{text}'")
     # Escape Markdown special characters to prevent formatting issues
-    raw = reduce_text_for_telegram(text)
-    markdown = telegramify_markdown.markdownify(raw)
-    text = escape_markdown_v2(markdown)
-
+    text = reduce_text_for_telegram(text)
     chunks = split_text(text)
 
     #logging.info(f"[markdownify]: '{text}'")
@@ -472,8 +462,7 @@ async def send_response(message, text):
         for chunk in chunks:
             await bot.send_message(
                 chat_id=message.chat.id,
-                text=chunk,
-                parse_mode="MarkdownV2"
+                text=chunk
             )
     else:
         # Private bot response (edit first, then send extras)
@@ -482,14 +471,12 @@ async def send_response(message, text):
                 await bot.edit_message_text(
                     chat_id=message.chat.id,
                     message_id=message.message_id,
-                    text=chunk,
-                    parse_mode="MarkdownV2"
+                    text=chunk
                 )
             else:
                 await bot.send_message(
                     chat_id=message.chat.id,
-                    text=chunk,
-                    parse_mode="MarkdownV2"
+                    text=chunk
                 )
 
 async def ollama_request(message: types.Message, prompt: str = None):
